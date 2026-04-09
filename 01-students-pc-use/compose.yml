@@ -1,0 +1,26 @@
+services:
+  students-pc-backend:
+    build:
+      context: ./01-students-pc-use/backend
+    container_name: students-pc-backend
+    environment:
+      DATABASE_URL: sqlite:////app/data/students_pc_use.db
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - students_pc_data:/app/data
+
+  students-pc-frontend:
+    build:
+      context: ./01-students-pc-use/frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+    container_name: students-pc-frontend
+    depends_on:
+      - students-pc-backend
+    ports:
+      - "5173:80"
+
+volumes:
+  students_pc_data:
