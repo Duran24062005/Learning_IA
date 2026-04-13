@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA Manual Test Suite - Students PC Use</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --ink: #172033;
+        --muted: #5c667a;
+        --line: #d8deeb;
+        --soft: #eef2fa;
+        --brand: #0f4c81;
+        --brand-2: #1d6fd6;
+        --success: #1f7a45;
+        --warning: #9a6700;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.45;
+      }
+
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background: #fff;
+        padding: 18mm 16mm;
+      }
+
+      .cover {
+        min-height: 245mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .cover-hero {
+        padding: 18mm;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #0f4c81 0%, #1d6fd6 55%, #9dc3f5 100%);
+        color: #fff;
+      }
+
+      .cover-kicker {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: 34px;
+        line-height: 1.1;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        max-width: 560px;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .meta-card,
+      .summary-card,
+      .case,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+      }
+
+      .meta-card {
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .meta-card strong {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.8;
+        margin-bottom: 6px;
+      }
+
+      .section-title {
+        margin: 0 0 12px;
+        font-size: 24px;
+        color: var(--brand);
+      }
+
+      .section-kicker {
+        margin: 0 0 8px;
+        color: var(--brand-2);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 16px 0 22px;
+      }
+
+      .summary-card {
+        padding: 14px;
+        background: var(--soft);
+      }
+
+      .summary-card .label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 1px;
+      }
+
+      .summary-card .value {
+        display: block;
+        margin-top: 8px;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+
+      .panel {
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+
+      .panel h3 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+
+      .panel p,
+      .panel li {
+        color: var(--ink);
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 9px 10px;
+        text-align: left;
+        vertical-align: top;
+        font-size: 12px;
+      }
+
+      th {
+        background: var(--soft);
+        color: var(--brand);
+      }
+
+      .module-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        margin: 28px 0 14px;
+      }
+
+      .module-chip {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--brand);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .case {
+        padding: 16px;
+        margin: 0 0 14px;
+        break-inside: avoid;
+      }
+
+      .case-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .case-id {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+
+      .badge-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--soft);
+        color: var(--brand);
+      }
+
+      .badge.success {
+        background: #e9f6ee;
+        color: var(--success);
+      }
+
+      .badge.warning {
+        background: #fff4d8;
+        color: var(--warning);
+      }
+
+      .case-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .case-block {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fbfcff;
+      }
+
+      .case-block strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--brand);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+
+      ul,
+      ol {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .exec-table td {
+        height: 34px;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          width: auto;
+          min-height: auto;
+          margin: 0;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page cover">
+      <section class="cover-hero">
+        <div class="cover-kicker">Quality Assurance Package</div>
+        <h1>Manual Test Suite</h1>
+        <div class="subtitle">
+          Documento profesional para ejecucion QA del proyecto
+          <strong>01-students-pc-use</strong>, consolidado a partir de los
+          casos manuales de estudiantes, computadores y asignaciones.
+        </div>
+        <div class="meta-grid">
+          <div class="meta-card">
+            <strong>Proyecto</strong>
+            Sistema de Gestion de Estudiantes y Computadores
+          </div>
+          <div class="meta-card">
+            <strong>Version del documento</strong>
+            v1.0
+          </div>
+          <div class="meta-card">
+            <strong>Fecha</strong>
+            2026-04-13
+          </div>
+          <div class="meta-card">
+            <strong>Preparado para</strong>
+            QA funcional y validacion operativa
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="label">Modulos</span>
+            <span class="value">3</span>
+          </article>
+          <article class="summary-card">
+            <span class="label">Casos Manuales</span>
+            <span class="value">34</span>
+          </article>
+          <article class="summary-card">
+            <span class="label">Ambiente Base</span>
+            <span class="value">WEB</span>
+          </article>
+          <article class="summary-card">
+            <span class="label">Tipo</span>
+            <span class="value">E2E</span>
+          </article>
+        </div>
+
+        <div class="two-col">
+          <section class="panel">
+            <h3>Objetivo</h3>
+            <p>
+              Estandarizar la ejecucion de pruebas manuales del flujo operativo
+              del MVP, dejando un formato ejecutable, trazable y apto para
+              evidencias, hallazgos y control de estado por parte del equipo QA.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h3>Precondiciones globales</h3>
+            <ul>
+              <li>Backend disponible en <code>http://localhost:8000</code>.</li>
+              <li>Frontend disponible en <code>http://localhost:5173</code>.</li>
+              <li>Base de datos operativa y accesible.</li>
+              <li>Navegador con opcion de capturar evidencia y revisar red.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <main class="page page-break">
+      <div class="section-kicker">Documento de control</div>
+      <h2 class="section-title">Matriz Ejecutiva</h2>
+
+      <section class="panel">
+        <h3>Resumen por modulo</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Modulo</th>
+              <th>Objetivo</th>
+              <th>Casos</th>
+              <th>Foco principal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Estudiantes</td>
+              <td>Gestion de registro, activacion y unicidad</td>
+              <td>11</td>
+              <td>Altas, duplicados, estado activo/inactivo</td>
+            </tr>
+            <tr>
+              <td>Computadores</td>
+              <td>Inventario y estado operativo</td>
+              <td>11</td>
+              <td>Serial unico, disponibilidad, mantenimiento</td>
+            </tr>
+            <tr>
+              <td>Asignaciones</td>
+              <td>Entrega, historial y devolucion</td>
+              <td>12</td>
+              <td>Elegibilidad, cambio a assigned, devolucion</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h3>Campos de ejecucion sugeridos</h3>
+        <table class="exec-table">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Uso</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ejecutado por</td>
+              <td>Nombre del tester responsable del caso.</td>
+            </tr>
+            <tr>
+              <td>Fecha de ejecucion</td>
+              <td>Fecha en la que se corrio el caso.</td>
+            </tr>
+            <tr>
+              <td>Estado</td>
+              <td>Pass, Fail, Blocked o N/A.</td>
+            </tr>
+            <tr>
+              <td>Resultado real</td>
+              <td>Descripcion breve del comportamiento observado.</td>
+            </tr>
+            <tr>
+              <td>Evidencia</td>
+              <td>Ruta, enlace o nombre del archivo de soporte.</td>
+            </tr>
+            <tr>
+              <td>Defecto</td>
+              <td>ID del bug o hallazgo, si aplica.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h3>Criterios generales de aprobacion</h3>
+        <ul>
+          <li>Los formularios no deben aceptar datos invalidos o inconsistentes.</li>
+          <li>Los contadores deben coincidir con la tabla visible.</li>
+          <li>Los cambios de estado deben persistir despues de refrescar.</li>
+          <li>Las reglas criticas de backend deben verse reflejadas en la UI o en la respuesta del sistema.</li>
+        </ul>
+      </section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 1</div>
+          <h2 class="section-title">Estudiantes</h2>
+        </div>
+        <div class="module-chip">11 casos</div>
+      </div>
+
+      <section class="case">
+        <div class="case-header">
+          <div>
+            <div class="case-id">STU-01</div>
+            <div>Registro exitoso de estudiante activo</div>
+          </div>
+          <div class="badge-row">
+            <span class="badge success">Positivo</span>
+            <span class="badge">Alta</span>
+          </div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Estudiantes</code> abierta.</li><li>Documento y correo sin uso previo.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Laura Martinez</li><li>1098765432</li><li>laura.martinez.qa1@campuslands.com</li><li>Estado Activo</li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Completar el formulario.</li><li>Confirmar estado Activo.</li><li>Hacer clic en <code>Registrar estudiante</code>.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>Formulario limpio.</li><li>Nueva fila visible.</li><li>Estado Activo.</li><li>Aumentan <code>Total</code> y <code>Activos</code>.</li></ul></div>
+        </div>
+      </section>
+
+      <section class="case">
+        <div class="case-header">
+          <div><div class="case-id">STU-02</div><div>Registro exitoso de estudiante inactivo</div></div>
+          <div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Alta</span></div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Estudiantes</code> abierta.</li><li>Documento y correo nuevos.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Carlos Perez</li><li>1098765433</li><li>carlos.perez.qa1@campuslands.com</li><li>Estado Inactivo</li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Completar el formulario.</li><li>Seleccionar estado Inactivo.</li><li>Registrar estudiante.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>Fila creada con estado Inactivo.</li><li>Aumenta <code>Total</code>.</li><li>No aumenta <code>Activos</code>.</li></ul></div>
+        </div>
+      </section>
+
+      <section class="case">
+        <div class="case-header">
+          <div><div class="case-id">STU-03</div><div>Validacion de campos requeridos</div></div>
+          <div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Formulario</span></div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Estudiantes</code> abierta.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Dejar vacio Nombre completo.</li><li>Dejar vacio Documento.</li><li>Dejar vacio Correo.</li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Intentar enviar el formulario sin un campo requerido.</li><li>Repetir para cada campo obligatorio.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>El navegador bloquea el envio.</li><li>No hay registros parciales.</li><li>No cambian tabla ni contadores.</li></ul></div>
+        </div>
+      </section>
+
+      <section class="case">
+        <div class="case-header">
+          <div><div class="case-id">STU-04</div><div>Validacion del formato de correo</div></div>
+          <div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Formulario</span></div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Estudiantes</code> abierta.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Correo: <code>correo-invalido</code></li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Completar formulario con correo invalido.</li><li>Intentar registrar.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>El navegador bloquea el envio.</li><li>No se crea el registro.</li></ul></div>
+        </div>
+      </section>
+
+      <section class="case">
+        <div class="case-header">
+          <div><div class="case-id">STU-05</div><div>Rechazo de documento duplicado</div></div>
+          <div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Unicidad</span></div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un estudiante con documento registrado.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Documento ya existente.</li><li>Correo nuevo.</li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Completar el formulario con documento duplicado.</li><li>Enviar.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>Se muestra error visible.</li><li>No se agrega fila.</li><li>No cambian contadores.</li></ul></div>
+        </div>
+      </section>
+
+      <section class="case">
+        <div class="case-header">
+          <div><div class="case-id">STU-06</div><div>Rechazo de correo duplicado</div></div>
+          <div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Unicidad</span></div>
+        </div>
+        <div class="case-grid">
+          <div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un estudiante con correo registrado.</li></ul></div>
+          <div class="case-block"><strong>Datos de prueba</strong><ul><li>Documento nuevo.</li><li>Correo ya existente.</li></ul></div>
+          <div class="case-block"><strong>Pasos</strong><ol><li>Completar formulario con correo duplicado.</li><li>Enviar.</li></ol></div>
+          <div class="case-block"><strong>Resultado esperado</strong><ul><li>Se muestra error.</li><li>No se crea el registro.</li><li>No cambian tabla ni contadores.</li></ul></div>
+        </div>
+      </section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 1</div>
+          <h2 class="section-title">Estudiantes</h2>
+        </div>
+        <div class="module-chip">Casos 07-11</div>
+      </div>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">STU-07</div><div>Visualizacion correcta de tabla y contadores</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Consulta</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Al menos un estudiante activo y uno inactivo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Abrir la vista.</li><li>Revisar <code>Total</code> y <code>Activos</code>.</li><li>Verificar columnas y filas.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Contadores correctos.</li><li>Tabla coherente.</li><li>No hay celdas vacias injustificadas.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">STU-08</div><div>Desactivacion desde la tabla</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Estado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un estudiante activo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Seleccionar fila activa.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Localizar estudiante activo.</li><li>Hacer clic en <code>Desactivar</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Estado cambia a Inactivo.</li><li>Boton cambia a Activar.</li><li><code>Activos</code> disminuye en 1.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">STU-09</div><div>Activacion desde la tabla</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Estado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un estudiante inactivo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Seleccionar fila inactiva.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Localizar estudiante inactivo.</li><li>Hacer clic en <code>Activar</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Estado cambia a Activo.</li><li>Boton cambia a Desactivar.</li><li><code>Activos</code> aumenta en 1.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">STU-10</div><div>Persistencia tras recarga</div></div><div class="badge-row"><span class="badge success">Regresion</span><span class="badge">Persistencia</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Se actualizo el estado de un estudiante.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Cambiar estado.</li><li>Recargar la pagina.</li><li>Verificar fila y contadores.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El estado se conserva.</li><li>No hay duplicados ni reversiones.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">STU-11</div><div>Regresion ligera con estados mixtos</div></div><div class="badge-row"><span class="badge success">Regresion</span><span class="badge">Mixto</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existen varios estudiantes con estados mixtos.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Crear uno activo.</li><li>Crear uno inactivo.</li><li>Desactivar uno activo.</li><li>Activar uno inactivo.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Cada cambio afecta solo su fila.</li><li>Los contadores permanecen consistentes.</li></ul></div></div></section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 2</div>
+          <h2 class="section-title">Computadores</h2>
+        </div>
+        <div class="module-chip">11 casos</div>
+      </div>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-01</div><div>Registro exitoso de computador disponible</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Alta</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Computadores</code> abierta.</li><li>Serial nuevo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>CJS-QA-001</li><li>Dell</li><li>Latitude 5420</li><li>Disponible</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Completar formulario.</li><li>Dejar estado Disponible.</li><li>Registrar computador.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Nueva fila visible.</li><li>Estado disponible.</li><li>Aumentan Total y Disponibles.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-02</div><div>Registro exitoso en mantenimiento</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Alta</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Computadores</code> abierta.</li><li>Serial nuevo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>CJS-QA-002</li><li>Lenovo</li><li>ThinkPad E14</li><li>Mantenimiento</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Completar formulario.</li><li>Seleccionar Mantenimiento.</li><li>Registrar computador.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Fila visible con mantenimiento.</li><li>Aumenta Total.</li><li>No aumenta Disponibles.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-03</div><div>Validacion de campos requeridos</div></div><div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Formulario</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Vista abierta.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Serial vacio.</li><li>Marca vacia.</li><li>Modelo vacio.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Intentar enviar sin cada campo requerido.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El navegador bloquea el envio.</li><li>No cambia el inventario.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-04</div><div>Rechazo de serial duplicado</div></div><div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Unicidad</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un serial registrado.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Serial ya existente.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Registrar un equipo con serial duplicado.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Se muestra error.</li><li>No se crea el equipo.</li><li>No cambian los contadores.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-05</div><div>Visualizacion correcta del inventario y contador</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Consulta</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un equipo disponible y uno en mantenimiento.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Abrir vista.</li><li>Revisar Total y Disponibles.</li><li>Verificar columnas.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Los contadores coinciden con las filas.</li><li>La tabla es consistente.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-06</div><div>Cambio manual a mantenimiento</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Estado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un equipo disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Seleccionar fila disponible.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Hacer clic en <code>Mantenimiento</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El estado cambia.</li><li><code>Disponibles</code> disminuye en 1.</li></ul></div></div></section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 2</div>
+          <h2 class="section-title">Computadores</h2>
+        </div>
+        <div class="module-chip">Casos 07-11</div>
+      </div>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-07</div><div>Cambio manual a disponible</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Estado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un equipo en mantenimiento.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Seleccionar fila en mantenimiento.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Hacer clic en <code>Marcar disponible</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Estado cambia a disponible.</li><li>Aumenta <code>Disponibles</code>.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-08</div><div>Restriccion de estados operativos validos</div></div><div class="badge-row"><span class="badge warning">Control</span><span class="badge">Negocio</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Vista abierta.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Revisar opciones del formulario.</li><li>Revisar acciones disponibles en tabla.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Solo existen Disponible y Mantenimiento.</li><li>No hay accion manual para <code>assigned</code>.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-09</div><div>Persistencia del cambio tras recarga</div></div><div class="badge-row"><span class="badge success">Regresion</span><span class="badge">Persistencia</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Se cambio el estado de un equipo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Recargar pagina.</li><li>Verificar fila y contador.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El estado se conserva.</li><li>No hay desalineaciones visuales.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-10</div><div>Regresion de altas y cambios de estado</div></div><div class="badge-row"><span class="badge success">Regresion</span><span class="badge">Mixto</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Vista <code>Computadores</code> disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>CJS-QA-003</li><li>CJS-QA-004</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Crear uno disponible.</li><li>Crear uno en mantenimiento.</li><li>Intercambiar estados.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Los cambios afectan solo su fila.</li><li>El contador final es correcto.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">COM-11</div><div>Restriccion sobre equipo asignado</div></div><div class="badge-row"><span class="badge warning">Negocio</span><span class="badge">Integrado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe una asignacion activa para un equipo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Equipo en estado <code>assigned</code>.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Ir a <code>Computadores</code>.</li><li>Ubicar el equipo asignado.</li><li>Revisar botones.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Los botones manuales estan deshabilitados.</li><li>No puede cambiarse manualmente el estado.</li></ul></div></div></section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 3</div>
+          <h2 class="section-title">Asignaciones</h2>
+        </div>
+        <div class="module-chip">12 casos</div>
+      </div>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-01</div><div>Creacion exitosa de asignacion valida</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Alta</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe estudiante activo.</li><li>Existe computador disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Observacion: Entrega inicial QA.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Seleccionar estudiante activo.</li><li>Seleccionar computador disponible.</li><li>Asignar computador.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La asignacion aparece en historial.</li><li>Aumentan Historial y Activas.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-02</div><div>Solo estudiantes activos en selector</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Filtro</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe al menos un activo y un inactivo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Abrir selector de estudiante.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Solo aparecen estudiantes activos.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-03</div><div>Solo computadores disponibles en selector</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Filtro</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe un equipo disponible y otro no disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Abrir selector de computador.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>Solo aparecen computadores disponibles.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-04</div><div>Bloqueo cuando no hay opciones validas</div></div><div class="badge-row"><span class="badge warning">Control</span><span class="badge">UI</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>No hay estudiantes activos o no hay computadores disponibles.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Abrir la vista.</li><li>Revisar boton <code>Asignar computador</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El boton esta deshabilitado.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-05</div><div>Cambio automatico del computador a assigned</div></div><div class="badge-row"><span class="badge success">Integrado</span><span class="badge">Estado</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Se creo una asignacion activa.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Crear asignacion.</li><li>Ir a <code>Computadores</code>.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El equipo queda en <code>assigned</code>.</li><li>Ya no figura como disponible.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-06</div><div>Reflejo en historial y contadores</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Historial</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Se creo una o mas asignaciones.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Revisar tabla de historial.</li><li>Revisar contadores.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La fila muestra estudiante, equipo, fecha, estado y notas.</li><li>Los contadores son consistentes.</li></ul></div></div></section>
+    </main>
+
+    <main class="page page-break">
+      <div class="module-header">
+        <div>
+          <div class="section-kicker">Modulo 3</div>
+          <h2 class="section-title">Asignaciones</h2>
+        </div>
+        <div class="module-chip">Casos 07-12</div>
+      </div>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-07</div><div>Devolucion exitosa</div></div><div class="badge-row"><span class="badge success">Positivo</span><span class="badge">Cierre</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe una asignacion activa.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Fila con boton <code>Registrar devolucion</code>.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Hacer clic en el boton de devolucion.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La columna Devuelto recibe fecha.</li><li>El boton cambia a <code>Cerrada</code>.</li><li><code>Activas</code> disminuye en 1.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-08</div><div>Liberacion automatica del computador</div></div><div class="badge-row"><span class="badge success">Integrado</span><span class="badge">Inventario</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Se registro una devolucion.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>No aplica.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Devolver una asignacion.</li><li>Verificar el modulo Computadores.</li><li>Volver al selector de asignaciones.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El equipo vuelve a <code>available</code>.</li><li>Reaparece como opcion asignable.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-09</div><div>Rechazo a estudiante inactivo</div></div><div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Negocio</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe estudiante inactivo.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Estudiante inactivo.</li><li>Equipo disponible.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Confirmar que el inactivo no aparece en la UI.</li><li>Opcionalmente forzar el endpoint.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La UI lo bloquea.</li><li>El backend rechaza la operacion forzada.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-10</div><div>Rechazo a computador no disponible</div></div><div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Negocio</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe equipo no disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Estudiante activo.</li><li>Equipo en mantenimiento o asignado.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Confirmar que el equipo no aparece en la UI.</li><li>Opcionalmente forzar el endpoint.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La UI no lo muestra.</li><li>El backend rechaza la operacion forzada.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-11</div><div>Rechazo de doble devolucion</div></div><div class="badge-row"><span class="badge warning">Negativo</span><span class="badge">Control</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe una asignacion ya cerrada.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Asignacion cerrada.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Validar boton <code>Cerrada</code>.</li><li>Opcionalmente forzar segundo return.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>La UI no permite una segunda devolucion.</li><li>El backend rechaza el intento forzado.</li></ul></div></div></section>
+
+      <section class="case"><div class="case-header"><div><div class="case-id">ASG-12</div><div>Regresion del ciclo completo asignar y devolver</div></div><div class="badge-row"><span class="badge success">Regresion</span><span class="badge">E2E</span></div></div><div class="case-grid"><div class="case-block"><strong>Precondiciones</strong><ul><li>Existe estudiante activo y equipo disponible.</li></ul></div><div class="case-block"><strong>Datos de prueba</strong><ul><li>Observacion: Ciclo completo QA.</li></ul></div><div class="case-block"><strong>Pasos</strong><ol><li>Crear asignacion.</li><li>Validar estado assigned.</li><li>Registrar devolucion.</li><li>Validar retorno a available.</li></ol></div><div class="case-block"><strong>Resultado esperado</strong><ul><li>El historial conserva el ciclo completo.</li><li>El inventario final queda consistente.</li></ul></div></div></section>
+
+      <div class="footer-note">
+        Este PDF consolida y formatea profesionalmente los casos descritos en los documentos manuales del repositorio. Puede usarse como plan de ejecucion QA, hoja de evidencia o insumo para auditoria funcional.
+      </div>
+    </main>
+  </body>
+</html>
