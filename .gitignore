@@ -40,3 +40,6 @@ db.sqlite
 # Docker / misc
 *.log
 logs/
+
+# Local n8n exports with credential IDs or workspace-specific metadata
+n8n-project/HelpDeskBot Telegram + Google Sheets + Gemini IA.json
