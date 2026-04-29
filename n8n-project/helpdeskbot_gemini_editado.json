@@ -1,0 +1,1199 @@
+{
+  "name": "HelpDeskBot Telegram + Google Sheets + Gemini IA",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "id": "1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "HelpDeskBot Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const event = $input.first().json;\nconst message = event.message || {};\nconst from = message.from || {};\nconst text = String(message.text || '').trim();\nconst fullName = [from.first_name, from.last_name].filter(Boolean).join(' ').trim();\nreturn [{\n  json: {\n    spreadsheet_id: 'YOUR_HELPDESKBOT_DB_SPREADSHEET_ID',\n    telegram_user: String(from.id || ''),\n    chat_id: String((message.chat && message.chat.id) || from.id || ''),\n    username: from.username || '',\n    first_name: from.first_name || '',\n    last_name: from.last_name || '',\n    full_name: fullName || from.username || 'Usuario',\n    text,\n    message_id: String(message.message_id || ''),\n    input_timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "USUARIOS"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "telegram_user",
+              "lookupValue": "={{$('Normalize Input').all()[0].json.telegram_user}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "3",
+      "name": "Read Users",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        720,
+        300
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base = $('Normalize Input').all()[0].json;\nconst rows = $input.all().map(i => i.json).filter(r => r && Object.keys(r).length);\nconst row = rows.find(r => String(r.telegram_user || '') === String(base.telegram_user)) || null;\nconst activoRaw = row ? row.activo : null;\nconst activo = activoRaw === true || ['true','1','si','sí','yes','activo'].includes(String(activoRaw || '').toLowerCase());\nconst rol = String((row && row.rol) || 'user').toLowerCase();\nconst nombre = (row && row.nombre) || base.full_name || base.username || 'Usuario';\nconst allowed = !!row && activo;\nconst state = allowed ? { screen: 'main_menu' } : { screen: 'blocked', reason: row ? 'inactive' : 'not_found' };\nreturn [{\n  json: {\n    ...base,\n    nombre,\n    rol,\n    user_allowed: allowed,\n    response_text: allowed ? '' : 'Lo siento, tu usuario no está activo en HelpDeskBot. Por favor contacta al administrador para habilitar tu acceso.',\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: allowed ? 'pre_auth_ok' : 'acceso_denegado',\n    log_opcion: base.text,\n    log_resultado: JSON.stringify(state)\n  }\n}];"
+      },
+      "id": "4",
+      "name": "Normalize User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{$json.user_allowed ? 0 : 1}}"
+      },
+      "id": "5",
+      "name": "Switch User Gate",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "LOGS"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "telegram_user",
+              "lookupValue": "={{$('Normalize User').all()[0].json.telegram_user}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "6",
+      "name": "Read User Logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        1440,
+        220
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Normalize User').all()[0].json;\n\nconst rows = $input.all()\n  .map(i => i.json)\n  .filter(r => r && r.timestamp);\n\n// Asegura que la memoria se lea por timestamp, no por el orden accidental del nodo.\nrows.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));\n\nlet session = { screen: 'main_menu' };\nif (rows.length) {\n  const latest = rows[rows.length - 1];\n  if (latest.resultado) {\n    try {\n      const parsed = JSON.parse(latest.resultado);\n      if (parsed && typeof parsed === 'object') {\n        session = parsed;\n      }\n    } catch (e) {\n      session = { screen: 'main_menu' };\n    }\n  }\n}\n\nconst textRaw = String(ctx.text || '').trim();\n\nconst validOptionsByScreen = {\n  main_menu: [\n    '0 Ayuda',\n    '1 Crear solicitud',\n    '2 Consultar estado de solicitud',\n    '3 Mis solicitudes',\n    '4 Reportes',\n    '5 Configuración'\n  ],\n  awaiting_create_type: [\n    '1 Soporte técnico',\n    '2 Solicitud administrativa',\n    '3 Consulta general',\n    '9 Cancelar'\n  ],\n  awaiting_create_priority: [\n    '1 Alta',\n    '2 Media',\n    '3 Baja',\n    '9 Cancelar'\n  ],\n  awaiting_create_description: [\n    'Texto libre con descripción del problema',\n    '9 Cancelar'\n  ],\n  awaiting_create_confirm: [\n    '1 Confirmar',\n    '9 Cancelar',\n    'También puede pedir cambiar tipo, prioridad o descripción'\n  ],\n  awaiting_query_ticket_id: [\n    'ID de ticket, por ejemplo HD-20260425-123456',\n    '9 Cancelar'\n  ],\n  awaiting_report_option: [\n    '1 Resumen general',\n    '2 Cambiar estado de ticket',\n    '9 Cancelar'\n  ],\n  awaiting_admin_status_ticket: [\n    'ID de ticket',\n    '9 Cancelar'\n  ],\n  awaiting_admin_status_value: [\n    '1 Abierto',\n    '2 En proceso',\n    '3 Cerrado',\n    '9 Cancelar'\n  ]\n};\n\nconst currentScreen = session.screen || 'main_menu';\nconst currentOptions = validOptionsByScreen[currentScreen] || validOptionsByScreen.main_menu;\n\nconst systemText = [\n  'Eres el interpretador de intención de HelpDeskBot.',\n  'NO ejecutes acciones. Solo devuelve JSON válido.',\n  'Tu tarea es traducir el texto libre del usuario a una intención segura para un flujo n8n.',\n  'Respeta el estado actual de la conversación.',\n  'Si el usuario saluda o pregunta algo mientras está dentro de un paso del formulario, no rompas el flujo: devuelve smalltalk y una respuesta breve que lo guíe.',\n  'Si el usuario confirma con palabras como \"sí\", \"confirmo\", \"dale\", \"ok\", \"crear\", devuelve intent confirm.',\n  'Si el usuario quiere cancelar, salir, reiniciar o volver al menú, devuelve cancel o menu según corresponda.',\n  'Si el usuario quiere modificar un borrador, usa change_field e indica field_to_change.',\n  'Valores permitidos para tipo: \"Soporte técnico\", \"Solicitud administrativa\", \"Consulta general\".',\n  'Valores permitidos para prioridad: \"Alta\", \"Media\", \"Baja\".',\n  'Devuelve únicamente JSON, sin markdown.'\n].join('\\n');\n\nconst userPrompt = {\n  contexto: {\n    pantalla_actual: currentScreen,\n    opciones_validas: currentOptions,\n    borrador_actual: {\n      tipo: session.tipo || null,\n      prioridad: session.prioridad || null,\n      descripcion: session.descripcion || null,\n      ticket_id: session.ticket_id || null\n    },\n    rol_usuario: ctx.rol || 'user'\n  },\n  mensaje_usuario: textRaw,\n  salida_esperada: {\n    intent: 'menu | help | cancel | confirm | create_ticket | query_ticket | my_tickets | reports | config | change_field | smalltalk | unknown',\n    tipo: 'Soporte técnico | Solicitud administrativa | Consulta general | null',\n    prioridad: 'Alta | Media | Baja | null',\n    descripcion: 'string | null',\n    ticket_id: 'string | null',\n    field_to_change: 'tipo | prioridad | descripcion | estado | null',\n    reply: 'respuesta breve en español si intent es smalltalk/unknown o si hace falta guiar al usuario',\n    confidence: 'número entre 0 y 1'\n  },\n  ejemplos: [\n    {\n      entrada: 'sí, confirmar',\n      salida: { intent: 'confirm', confidence: 0.95 }\n    },\n    {\n      entrada: 'quiero cambiar la prioridad a alta',\n      salida: { intent: 'change_field', field_to_change: 'prioridad', prioridad: 'Alta', confidence: 0.95 }\n    },\n    {\n      entrada: 'hola',\n      salida: { intent: 'smalltalk', reply: '¡Hola! Sigo aquí. Estábamos en el paso actual; dime una opción válida o qué quieres cambiar.', confidence: 0.9 }\n    },\n    {\n      entrada: 'quiero crear un ticket urgente porque mi pc no prende',\n      salida: { intent: 'create_ticket', tipo: 'Soporte técnico', prioridad: 'Alta', descripcion: 'Mi PC no prende', confidence: 0.95 }\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    ...ctx,\n    session,\n    session_screen: currentScreen,\n    valid_options: currentOptions,\n    gemini_request_body: {\n      systemInstruction: {\n        parts: [\n          {\n            text: systemText\n          }\n        ]\n      },\n      contents: [\n        {\n          role: 'user',\n          parts: [\n            {\n              text: JSON.stringify(userPrompt, null, 2)\n            }\n          ]\n        }\n      ],\n      generationConfig: {\n        temperature: 0.2,\n        maxOutputTokens: 700,\n        responseMimeType: 'application/json'\n      }\n    }\n  }\n}];"
+      },
+      "id": "28",
+      "name": "Build Gemini Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-goog-api-key",
+              "value": "={{$env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{$json.gemini_request_body}}",
+        "options": {}
+      },
+      "id": "29",
+      "name": "Gemini Intent Parser",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Build Gemini Context').all()[0].json;\nconst response = $input.first().json || {};\n\nfunction stripAccents(value) {\n  return String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n}\n\nfunction fallbackIntent(textRaw) {\n  const raw = String(textRaw || '').trim();\n  const text = stripAccents(raw.toLowerCase());\n\n  if (!raw) {\n    return { intent: 'unknown', confidence: 0.2, reply: 'No recibí texto. Por favor escribe una opción o dime qué necesitas.' };\n  }\n\n  if (['/start', 'start', 'menu', 'menú', '0', 'ayuda', 'help'].includes(raw.toLowerCase())) {\n    return { intent: raw === '0' || text.includes('ayuda') || text === 'help' ? 'help' : 'menu', confidence: 0.9 };\n  }\n\n  if (raw === '9' || /\\b(cancelar|cancela|salir|volver|reiniciar|menu principal|menú principal)\\b/.test(text)) {\n    return { intent: text.includes('menu') ? 'menu' : 'cancel', confidence: 0.9 };\n  }\n\n  if (/^(1|si|sí|s|ok|okay|dale|listo|confirmo|confirmar|crear|enviar|correcto)$/.test(raw.toLowerCase())) {\n    return { intent: 'confirm', confidence: 0.75 };\n  }\n\n  const ticketMatch = raw.match(/HD-\\d{8}-\\d{3,}/i);\n  if (ticketMatch || /\\b(estado|consultar|consulta|ticket|solicitud)\\b/.test(text) && /\\bhd[-\\s]?\\d+/i.test(raw)) {\n    return { intent: 'query_ticket', ticket_id: ticketMatch ? ticketMatch[0].toUpperCase() : raw, confidence: 0.75 };\n  }\n\n  if (/\\b(mis solicitudes|mis tickets|ver solicitudes|ver tickets)\\b/.test(text)) {\n    return { intent: 'my_tickets', confidence: 0.85 };\n  }\n\n  if (/\\b(reporte|reportes|resumen|estadisticas|estadísticas)\\b/.test(text)) {\n    return { intent: 'reports', confidence: 0.85 };\n  }\n\n  if (/\\b(configuracion|configuración|ajustes)\\b/.test(text)) {\n    return { intent: 'config', confidence: 0.85 };\n  }\n\n  if (/\\b(cambiar|modificar|editar|corrige|corregir)\\b/.test(text)) {\n    let field = null;\n    if (/\\b(tipo|categoria|categoría)\\b/.test(text)) field = 'tipo';\n    if (/\\b(prioridad|urgencia)\\b/.test(text)) field = 'prioridad';\n    if (/\\b(descripcion|descripción|detalle|problema)\\b/.test(text)) field = 'descripcion';\n    return { intent: 'change_field', field_to_change: field, confidence: 0.65 };\n  }\n\n  if (/\\b(hola|buenas|buenos dias|buenos días|buenas tardes|buenas noches|hey|gracias)\\b/.test(text)) {\n    return { intent: 'smalltalk', confidence: 0.85, reply: '¡Hola! Sigo aquí para ayudarte. Podemos continuar con el paso actual o volver al menú.' };\n  }\n\n  if (/\\b(crear|abrir|registrar|nuevo|ticket|solicitud|problema|falla|error|soporte|urgente|no funciona|dañado|danado)\\b/.test(text)) {\n    return { intent: 'create_ticket', descripcion: raw, confidence: 0.65 };\n  }\n\n  return { intent: 'unknown', confidence: 0.35, reply: 'No entendí completamente. Puedes escribir una opción del menú o decirme qué necesitas en una frase.' };\n}\n\nfunction extractGeminiText(payload) {\n  const parts = payload?.candidates?.[0]?.content?.parts || [];\n  const textPart = parts.find(p => typeof p.text === 'string');\n  return textPart ? textPart.text : '';\n}\n\nlet raw = extractGeminiText(response);\nlet parsed = null;\n\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  const match = String(raw || '').match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try {\n      parsed = JSON.parse(match[0]);\n    } catch (e2) {\n      parsed = null;\n    }\n  }\n}\n\nconst fallback = fallbackIntent(ctx.text);\nlet ai = parsed && typeof parsed === 'object' ? parsed : fallback;\n\nconst allowedIntents = [\n  'menu',\n  'help',\n  'cancel',\n  'confirm',\n  'create_ticket',\n  'query_ticket',\n  'my_tickets',\n  'reports',\n  'config',\n  'change_field',\n  'smalltalk',\n  'unknown'\n];\n\nif (!allowedIntents.includes(String(ai.intent || ''))) {\n  ai.intent = fallback.intent;\n}\n\nai.intent = String(ai.intent || fallback.intent || 'unknown');\nai.tipo = ai.tipo || null;\nai.prioridad = ai.prioridad || null;\nai.descripcion = ai.descripcion || null;\nai.ticket_id = ai.ticket_id || null;\nai.field_to_change = ai.field_to_change || null;\nai.reply = ai.reply || fallback.reply || null;\nai.confidence = Number(ai.confidence || fallback.confidence || 0.3);\n\nreturn [{\n  json: {\n    ...ctx,\n    ai_intent: ai,\n    ai_raw_response: String(raw || '').slice(0, 2000),\n    ai_provider_error: response.error ? JSON.stringify(response.error).slice(0, 1000) : null\n  }\n}];"
+      },
+      "id": "30",
+      "name": "Parse Gemini Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $input.first().json;\nconst session = ctx.session && typeof ctx.session === 'object' ? ctx.session : { screen: 'main_menu' };\nconst ai = ctx.ai_intent && typeof ctx.ai_intent === 'object' ? ctx.ai_intent : {};\n\nconst textRaw = String(ctx.text || '').trim();\nconst textLower = textRaw.toLowerCase();\nconst now = new Date().toISOString();\n\nfunction stripAccents(value) {\n  return String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n}\n\nconst text = stripAccents(textLower);\nconst isAdmin = ['admin', 'agent', 'soporte', 'support'].includes(String(ctx.rol || '').toLowerCase());\n\nconst mainMenu = 'Hola, soy HelpDeskBot 👋\\n\\nEstoy aquí para ayudarte con solicitudes de soporte\\nde forma rápida y ordenada.\\n\\nPuedes escribir el número de la opción o decirme con tus palabras lo que necesitas.\\n\\nMenú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nconst createMenu = 'Vamos a crear una solicitud.\\n\\nPuedes responder con el número o escribirlo con tus palabras.\\n\\nSelecciona el tipo:\\n1. Soporte técnico\\n2. Solicitud administrativa\\n3. Consulta general\\n9. Cancelar';\n\nconst priorityMenu = 'Selecciona la prioridad:\\n1. Alta\\n2. Media\\n3. Baja\\n9. Cancelar';\n\nconst helpText = mainMenu + '\\n\\nEjemplos:\\n- \"Crear ticket urgente porque mi PC no prende\"\\n- \"Consultar HD-20260425-123456\"\\n- \"Mis solicitudes\"\\n\\nTip: puedes escribir 9 o \"cancelar\" para salir de cualquier proceso.';\n\nconst cancelText = 'Operación cancelada.\\n\\n' + mainMenu;\n\nconst configText = 'Configuración\\n\\nPor ahora no hay opciones editables desde Telegram.\\n\\n' + mainMenu;\n\nconst reportMenu = 'Reportes\\n\\n1. Resumen general\\n2. Cambiar estado de ticket\\n9. Cancelar';\n\nfunction simple(response, nextState) {\n  const state = nextState && typeof nextState === 'object' ? nextState : { screen: 'main_menu' };\n  return [{\n    json: {\n      ...ctx,\n      route_index: 0,\n      response_text: response,\n      log_timestamp: now,\n      log_pantalla: state.screen || 'main_menu',\n      log_opcion: textRaw,\n      log_resultado: JSON.stringify(state)\n    }\n  }];\n}\n\nfunction route(index, extra = {}) {\n  return [{\n    json: {\n      ...ctx,\n      ...extra,\n      route_index: index\n    }\n  }];\n}\n\nfunction firstFilled(...values) {\n  for (const value of values) {\n    if (value !== undefined && value !== null && String(value).trim() !== '') {\n      return value;\n    }\n  }\n  return null;\n}\n\nfunction cleanDescription(value) {\n  const v = String(value || '').trim();\n  if (!v) return null;\n  if (['1', '2', '3', '4', '5', '9', '0'].includes(v)) return null;\n  if (/^(si|sí|s|ok|okay|confirmo|confirmar|dale|listo|cancelar|menu|menú)$/i.test(v)) return null;\n  return v;\n}\n\nfunction normalizeTipo(value) {\n  const v = stripAccents(String(value || '').toLowerCase()).trim();\n  if (!v) return null;\n\n  if (\n    v === '1' ||\n    v.includes('soporte tecnico') ||\n    v.includes('tecnico') ||\n    v.includes('soporte') ||\n    v.includes('pc') ||\n    v.includes('computador') ||\n    v.includes('computadora') ||\n    v.includes('laptop') ||\n    v.includes('internet') ||\n    v.includes('wifi') ||\n    v.includes('correo') ||\n    v.includes('impresora') ||\n    v.includes('sistema') ||\n    v.includes('chatbot') ||\n    v.includes('bot')\n  ) {\n    return 'Soporte técnico';\n  }\n\n  if (\n    v === '2' ||\n    v.includes('solicitud administrativa') ||\n    v.includes('administrativa') ||\n    v.includes('administrativo') ||\n    v.includes('documento') ||\n    v.includes('certificado') ||\n    v.includes('permiso')\n  ) {\n    return 'Solicitud administrativa';\n  }\n\n  if (\n    v === '3' ||\n    v.includes('consulta general') ||\n    v === 'consulta' ||\n    v.includes('pregunta') ||\n    v.includes('informacion') ||\n    v.includes('información') ||\n    v.includes('general')\n  ) {\n    return 'Consulta general';\n  }\n\n  return null;\n}\n\nfunction normalizePriority(value) {\n  const v = stripAccents(String(value || '').toLowerCase()).trim();\n  if (!v) return null;\n\n  if (\n    v === '1' ||\n    v.includes('alta') ||\n    v.includes('urgente') ||\n    v.includes('critica') ||\n    v.includes('crítica') ||\n    v.includes('grave') ||\n    v.includes('bloqueado') ||\n    v.includes('no puedo trabajar')\n  ) {\n    return 'Alta';\n  }\n\n  if (\n    v === '2' ||\n    v.includes('media') ||\n    v.includes('normal') ||\n    v.includes('moderada')\n  ) {\n    return 'Media';\n  }\n\n  if (\n    v === '3' ||\n    v.includes('baja') ||\n    v.includes('no urgente') ||\n    v.includes('cuando puedan') ||\n    v.includes('leve')\n  ) {\n    return 'Baja';\n  }\n\n  return null;\n}\n\nfunction ticketIdFrom(value) {\n  const raw = String(value || '').trim();\n  const match = raw.match(/HD-\\d{8}-\\d{3,}/i);\n  if (match) return match[0].toUpperCase();\n  return raw || null;\n}\n\nfunction confirmationText(draft) {\n  return 'Confirma la solicitud:\\n\\n' +\n    'Tipo: ' + draft.tipo + '\\n' +\n    'Prioridad: ' + draft.prioridad + '\\n' +\n    'Descripción: ' + draft.descripcion + '\\n\\n' +\n    '1. Confirmar\\n' +\n    '9. Cancelar\\n\\n' +\n    'También puedes decir \"confirmar\", \"cancelar\" o \"cambiar prioridad a alta\".';\n}\n\nfunction guideCurrentDraft(prefix = '') {\n  const draft = {\n    tipo: session.tipo,\n    prioridad: session.prioridad,\n    descripcion: session.descripcion\n  };\n\n  const base = draft.tipo && draft.prioridad && draft.descripcion\n    ? confirmationText(draft)\n    : mainMenu;\n\n  return (prefix ? prefix + '\\n\\n' : '') + base;\n}\n\nfunction aiReplyOr(defaultText) {\n  const reply = String(ai.reply || '').trim();\n  if (reply && reply.length <= 1000) return reply;\n  return defaultText;\n}\n\nfunction promptNextFromDraft(draft) {\n  if (!draft.tipo) {\n    return simple(createMenu, {\n      screen: 'awaiting_create_type',\n      prioridad: draft.prioridad || undefined,\n      descripcion: draft.descripcion || undefined\n    });\n  }\n\n  if (!draft.prioridad) {\n    return simple(priorityMenu, {\n      screen: 'awaiting_create_priority',\n      tipo: draft.tipo,\n      descripcion: draft.descripcion || undefined\n    });\n  }\n\n  if (!draft.descripcion) {\n    return simple('Describe el problema o solicitud.\\n\\n9. Cancelar', {\n      screen: 'awaiting_create_description',\n      tipo: draft.tipo,\n      prioridad: draft.prioridad\n    });\n  }\n\n  return simple(confirmationText(draft), {\n    screen: 'awaiting_create_confirm',\n    tipo: draft.tipo,\n    prioridad: draft.prioridad,\n    descripcion: draft.descripcion\n  });\n}\n\nfunction draftFromAI({ allowInferFromText = true, keepSession = true } = {}) {\n  const descriptionCandidate = cleanDescription(firstFilled(ai.descripcion, keepSession ? session.descripcion : null));\n  const inferenceText = allowInferFromText\n    ? firstFilled(ai.tipo, ai.prioridad, descriptionCandidate, textRaw)\n    : firstFilled(ai.tipo, ai.prioridad, descriptionCandidate);\n\n  return {\n    tipo: normalizeTipo(firstFilled(ai.tipo, keepSession ? session.tipo : null, allowInferFromText ? inferenceText : null)),\n    prioridad: normalizePriority(firstFilled(ai.prioridad, keepSession ? session.prioridad : null, allowInferFromText ? inferenceText : null)),\n    descripcion: descriptionCandidate\n  };\n}\n\nfunction isSmalltalkIntent() {\n  return ai.intent === 'smalltalk';\n}\n\nfunction isConfirmIntent() {\n  return textRaw === '1' || ai.intent === 'confirm' || /^(si|sí|s|ok|okay|dale|listo|confirmo|confirmar|crear|enviar|correcto)$/i.test(textRaw);\n}\n\nfunction isGlobalMenuIntent() {\n  return ['/start', 'start', 'menu', 'menú', '0', 'ayuda', 'help'].includes(textLower) || ai.intent === 'menu' || ai.intent === 'help';\n}\n\nfunction isGlobalCancelIntent() {\n  return textRaw === '9' || ai.intent === 'cancel';\n}\n\n// Intenciones globales\nif (isGlobalMenuIntent()) {\n  return simple(helpText, { screen: 'main_menu' });\n}\n\nif (isGlobalCancelIntent()) {\n  return simple(cancelText, { screen: 'main_menu' });\n}\n\n// Paso: seleccionar tipo\nif (session.screen === 'awaiting_create_type') {\n  const selectedTipo = normalizeTipo(firstFilled(ai.tipo, textRaw));\n\n  if (!selectedTipo) {\n    return simple(\n      aiReplyOr('No pude identificar el tipo de solicitud. Elige una opción o escribe \"soporte técnico\", \"administrativa\" o \"consulta general\".') +\n      '\\n\\n' + createMenu,\n      {\n        ...session,\n        screen: 'awaiting_create_type'\n      }\n    );\n  }\n\n  const draft = {\n    tipo: selectedTipo,\n    prioridad: normalizePriority(firstFilled(ai.prioridad, session.prioridad)),\n    descripcion: cleanDescription(firstFilled(ai.descripcion, session.descripcion))\n  };\n\n  return promptNextFromDraft(draft);\n}\n\n// Paso: seleccionar prioridad\nif (session.screen === 'awaiting_create_priority') {\n  const selectedPriority = normalizePriority(firstFilled(ai.prioridad, textRaw));\n\n  if (!selectedPriority) {\n    return simple(\n      aiReplyOr('No pude identificar la prioridad. Puedes escribir alta, media o baja.') +\n      '\\n\\n' + priorityMenu,\n      {\n        ...session,\n        screen: 'awaiting_create_priority'\n      }\n    );\n  }\n\n  const draft = {\n    tipo: normalizeTipo(session.tipo),\n    prioridad: selectedPriority,\n    descripcion: cleanDescription(firstFilled(ai.descripcion, session.descripcion))\n  };\n\n  return promptNextFromDraft(draft);\n}\n\n// Paso: escribir descripción\nif (session.screen === 'awaiting_create_description') {\n  if (isSmalltalkIntent() && !cleanDescription(ai.descripcion)) {\n    return simple(\n      aiReplyOr('¡Hola! Para continuar necesito que me describas el problema o solicitud.') +\n      '\\n\\nDescribe el problema o solicitud.\\n\\n9. Cancelar',\n      {\n        ...session,\n        screen: 'awaiting_create_description'\n      }\n    );\n  }\n\n  const description = cleanDescription(firstFilled(ai.descripcion, textRaw));\n\n  if (!description) {\n    return simple(\n      'La descripción es obligatoria.\\n\\nDescribe el problema o solicitud.\\n\\n9. Cancelar',\n      {\n        ...session,\n        screen: 'awaiting_create_description'\n      }\n    );\n  }\n\n  const draft = {\n    tipo: normalizeTipo(session.tipo),\n    prioridad: normalizePriority(session.prioridad),\n    descripcion: description\n  };\n\n  return promptNextFromDraft(draft);\n}\n\n// Paso: confirmar solicitud\nif (session.screen === 'awaiting_create_confirm') {\n  if (isConfirmIntent()) {\n    if (!session.tipo || !session.prioridad || !session.descripcion) {\n      return promptNextFromDraft({\n        tipo: normalizeTipo(session.tipo),\n        prioridad: normalizePriority(session.prioridad),\n        descripcion: cleanDescription(session.descripcion)\n      });\n    }\n\n    return route(1, {\n      ticket_tipo: session.tipo,\n      ticket_prioridad: session.prioridad,\n      ticket_descripcion: session.descripcion\n    });\n  }\n\n  if (ai.intent === 'change_field' || ai.intent === 'create_ticket') {\n    const wantsType = ai.field_to_change === 'tipo';\n    const wantsPriority = ai.field_to_change === 'prioridad';\n    const wantsDescription = ai.field_to_change === 'descripcion';\n\n    const updatedDraft = {\n      tipo: normalizeTipo(firstFilled(ai.tipo, session.tipo)),\n      prioridad: normalizePriority(firstFilled(ai.prioridad, session.prioridad)),\n      descripcion: cleanDescription(firstFilled(ai.descripcion, session.descripcion))\n    };\n\n    if (wantsType && !ai.tipo) {\n      return simple(createMenu, {\n        screen: 'awaiting_create_type',\n        prioridad: updatedDraft.prioridad,\n        descripcion: updatedDraft.descripcion\n      });\n    }\n\n    if (wantsPriority && !ai.prioridad) {\n      return simple(priorityMenu, {\n        screen: 'awaiting_create_priority',\n        tipo: updatedDraft.tipo,\n        descripcion: updatedDraft.descripcion\n      });\n    }\n\n    if (wantsDescription && !ai.descripcion) {\n      return simple('Escribe la nueva descripción de la solicitud.\\n\\n9. Cancelar', {\n        screen: 'awaiting_create_description',\n        tipo: updatedDraft.tipo,\n        prioridad: updatedDraft.prioridad\n      });\n    }\n\n    return promptNextFromDraft(updatedDraft);\n  }\n\n  return simple(\n    aiReplyOr('Estamos en la confirmación de la solicitud. Puedes confirmar, cancelar o pedirme cambiar algún dato.') +\n    '\\n\\n' +\n    confirmationText({\n      tipo: session.tipo,\n      prioridad: session.prioridad,\n      descripcion: session.descripcion\n    }),\n    session\n  );\n}\n\n// Paso: consultar ticket\nif (session.screen === 'awaiting_query_ticket_id') {\n  if (isSmalltalkIntent()) {\n    return simple(\n      aiReplyOr('Sigo aquí. Para consultar el estado necesito el ID del ticket, por ejemplo HD-20260425-123456.') +\n      '\\n\\n9. Cancelar',\n      { screen: 'awaiting_query_ticket_id' }\n    );\n  }\n\n  const lookup = ticketIdFrom(firstFilled(ai.ticket_id, textRaw));\n\n  if (!lookup) {\n    return simple(\n      'Debes escribir un ID de ticket.\\n\\nEjemplo: HD-20260425-123456\\n\\n9. Cancelar',\n      { screen: 'awaiting_query_ticket_id' }\n    );\n  }\n\n  return route(2, { lookup_ticket_id: lookup });\n}\n\n// Paso: reportes\nif (session.screen === 'awaiting_report_option') {\n  if (!isAdmin) {\n    return simple('No tienes permisos para acceder a reportes.\\n\\n' + mainMenu, { screen: 'main_menu' });\n  }\n\n  if (textRaw === '1' || ai.intent === 'reports') {\n    return route(4);\n  }\n\n  if (textRaw === '2' || ai.intent === 'change_field') {\n    return simple('Escribe el ID del ticket al que deseas cambiar el estado.\\n\\n9. Cancelar', {\n      screen: 'awaiting_admin_status_ticket'\n    });\n  }\n\n  return simple(\n    aiReplyOr('No pude identificar la opción de reportes. Elige 1 para resumen o 2 para cambiar estado.') +\n    '\\n\\n' + reportMenu,\n    { screen: 'awaiting_report_option' }\n  );\n}\n\n// Paso admin: pedir ticket\nif (session.screen === 'awaiting_admin_status_ticket') {\n  const lookup = ticketIdFrom(firstFilled(ai.ticket_id, textRaw));\n\n  if (!lookup || isSmalltalkIntent()) {\n    return simple('Escribe el ID del ticket al que deseas cambiar el estado.\\n\\n9. Cancelar', {\n      screen: 'awaiting_admin_status_ticket'\n    });\n  }\n\n  return route(5, { lookup_ticket_id: lookup });\n}\n\n// Paso admin: seleccionar estado\nif (session.screen === 'awaiting_admin_status_value') {\n  const statusMap = {\n    '1': 'Abierto',\n    '2': 'En proceso',\n    '3': 'Cerrado'\n  };\n\n  let nuevoEstado = statusMap[textRaw];\n\n  const aiStatus = stripAccents(String(firstFilled(ai.nuevo_estado, ai.estado, ai.descripcion, textRaw) || '').toLowerCase());\n  if (!nuevoEstado) {\n    if (aiStatus.includes('abierto')) nuevoEstado = 'Abierto';\n    if (aiStatus.includes('proceso')) nuevoEstado = 'En proceso';\n    if (aiStatus.includes('cerrado') || aiStatus.includes('cerrar')) nuevoEstado = 'Cerrado';\n  }\n\n  if (!nuevoEstado) {\n    return simple(\n      'Estado inválido.\\n\\nSelecciona el nuevo estado:\\n1. Abierto\\n2. En proceso\\n3. Cerrado\\n9. Cancelar',\n      session\n    );\n  }\n\n  return route(6, {\n    lookup_ticket_id: session.ticket_id,\n    nuevo_estado: nuevoEstado\n  });\n}\n\n// Menú principal rígido + natural\nif (textRaw === '1') {\n  return simple(createMenu, { screen: 'awaiting_create_type' });\n}\n\nif (textRaw === '2') {\n  return simple(\n    'Escribe el ID del ticket que deseas consultar.\\n\\nEjemplo: HD-20260425-123456\\n\\n9. Cancelar',\n    { screen: 'awaiting_query_ticket_id' }\n  );\n}\n\nif (textRaw === '3') {\n  return route(3);\n}\n\nif (textRaw === '4') {\n  if (!isAdmin) {\n    return simple('No tienes permisos para acceder a reportes.\\n\\n' + mainMenu, { screen: 'main_menu' });\n  }\n\n  return simple(reportMenu, { screen: 'awaiting_report_option' });\n}\n\nif (textRaw === '5') {\n  return simple(configText, { screen: 'main_menu' });\n}\n\nif (ai.intent === 'create_ticket') {\n  const draft = draftFromAI({ allowInferFromText: true, keepSession: false });\n  return promptNextFromDraft(draft);\n}\n\nif (ai.intent === 'query_ticket') {\n  const lookup = ticketIdFrom(firstFilled(ai.ticket_id, textRaw));\n\n  if (lookup && lookup !== textRaw || /HD-\\d{8}-\\d{3,}/i.test(String(lookup))) {\n    return route(2, { lookup_ticket_id: lookup });\n  }\n\n  return simple(\n    'Claro. Escribe el ID del ticket que deseas consultar.\\n\\nEjemplo: HD-20260425-123456\\n\\n9. Cancelar',\n    { screen: 'awaiting_query_ticket_id' }\n  );\n}\n\nif (ai.intent === 'my_tickets') {\n  return route(3);\n}\n\nif (ai.intent === 'reports') {\n  if (!isAdmin) {\n    return simple('No tienes permisos para acceder a reportes.\\n\\n' + mainMenu, { screen: 'main_menu' });\n  }\n\n  return simple(reportMenu, { screen: 'awaiting_report_option' });\n}\n\nif (ai.intent === 'config') {\n  return simple(configText, { screen: 'main_menu' });\n}\n\nif (isSmalltalkIntent()) {\n  return simple(\n    aiReplyOr('¡Hola! Soy HelpDeskBot. Puedes elegir una opción o decirme qué necesitas.') +\n    '\\n\\n' + mainMenu,\n    { screen: 'main_menu' }\n  );\n}\n\nreturn simple(\n  aiReplyOr('No entendí completamente lo que necesitas. Puedes escribir una opción del menú o decirme algo como \"crear ticket urgente porque mi PC no prende\".') +\n  '\\n\\n' + mainMenu,\n  { screen: 'main_menu' }\n);"
+      },
+      "id": "7",
+      "name": "Decide Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 7,
+        "output": "={{$json.route_index || 0}}"
+      },
+      "id": "8",
+      "name": "Switch Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $input.first().json;\nconst d = new Date();\nconst ymd = d.toISOString().slice(0, 10).replace(/-/g, '');\nconst suffix = Date.now().toString().slice(-6);\nconst ticketId = `HD-${ymd}-${suffix}`;\nreturn [{\n  json: {\n    ...ctx,\n    id_ticket: ticketId,\n    estado: 'Abierto',\n    fecha_creacion: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "9",
+      "name": "Prepare Ticket Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "dataMode": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id_ticket",
+              "fieldValue": "={{$json.id_ticket}}"
+            },
+            {
+              "fieldId": "tipo",
+              "fieldValue": "={{$json.ticket_tipo}}"
+            },
+            {
+              "fieldId": "prioridad",
+              "fieldValue": "={{$json.ticket_prioridad}}"
+            },
+            {
+              "fieldId": "descripcion",
+              "fieldValue": "={{$json.ticket_descripcion}}"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "={{$json.estado}}"
+            },
+            {
+              "fieldId": "creado_por",
+              "fieldValue": "={{$json.telegram_user}}"
+            },
+            {
+              "fieldId": "fecha_creacion",
+              "fieldValue": "={{$json.fecha_creacion}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10",
+      "name": "Append Ticket",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        3120,
+        60
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Prepare Ticket Row').all()[0].json;\n\nconst mainMenu = 'Menú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nconst response = `✅ Tu solicitud fue registrada con éxito.\n\nTicket: ${ctx.id_ticket}\nTipo: ${ctx.ticket_tipo}\nPrioridad: ${ctx.ticket_prioridad}\nEstado: Abierto\n\nPuedes consultar su estado con la opción 2.\n\n${mainMenu}`;\n\nreturn [{\n  json: {\n    ...ctx,\n    response_text: response,\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: 'main_menu',\n    log_opcion: ctx.text,\n    log_resultado: JSON.stringify({\n      screen: 'main_menu',\n      result: 'ticket_created',\n      ticket_id: ctx.id_ticket\n    })\n  }\n}];"
+      },
+      "id": "11",
+      "name": "After Ticket Save",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id_ticket",
+              "lookupValue": "={{$json.lookup_ticket_id}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "12",
+      "name": "Read Ticket By ID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2880,
+        220
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Decide Route').all()[0].json;\nconst isAdmin = ['admin','agent','soporte','support'].includes(String(ctx.rol || '').toLowerCase());\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id_ticket);\nconst row = rows[0] || null;\n\nconst mainMenu = 'Menú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nlet response;\nlet result;\n\nif (!row) {\n  response = `No encontré el ticket ${ctx.lookup_ticket_id}.`;\n  result = { screen: 'main_menu', result: 'ticket_not_found', ticket_id: ctx.lookup_ticket_id };\n} else if (!isAdmin && String(row.creado_por || '') !== String(ctx.telegram_user)) {\n  response = `No tienes permisos para consultar el ticket ${ctx.lookup_ticket_id}.`;\n  result = { screen: 'main_menu', result: 'forbidden_ticket_query', ticket_id: ctx.lookup_ticket_id };\n} else {\n  response = `Estado del ticket ${row.id_ticket}\n\nTipo: ${row.tipo}\nPrioridad: ${row.prioridad}\nEstado: ${row.estado}\nDescripción: ${row.descripcion}\nFecha de creación: ${row.fecha_creacion}`;\n  result = { screen: 'main_menu', result: 'ticket_found', ticket_id: row.id_ticket, status: row.estado };\n}\n\nresponse += '\\n\\n' + mainMenu;\n\nreturn [{\n  json: {\n    ...ctx,\n    response_text: response,\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: 'main_menu',\n    log_opcion: ctx.text,\n    log_resultado: JSON.stringify(result)\n  }\n}];"
+      },
+      "id": "13",
+      "name": "Format Ticket Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "creado_por",
+              "lookupValue": "={{$json.telegram_user}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "14",
+      "name": "Read My Tickets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2880,
+        380
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Decide Route').all()[0].json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id_ticket);\n\nrows.sort((a, b) => String(b.fecha_creacion || '').localeCompare(String(a.fecha_creacion || '')));\n\nconst mainMenu = 'Menú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nlet response;\n\nif (!rows.length) {\n  response = 'No tienes solicitudes registradas.';\n} else {\n  const list = rows\n    .slice(0, 10)\n    .map(r => `- ${r.id_ticket} | ${r.estado} | ${r.prioridad} | ${r.tipo}`)\n    .join('\\n');\n\n  response = `Tus solicitudes (${rows.length})\\n\\n${list}`;\n\n  if (rows.length > 10) {\n    response += `\\n\\nMostrando 10 de ${rows.length}.`;\n  }\n}\n\nresponse += '\\n\\n' + mainMenu;\n\nreturn [{\n  json: {\n    ...ctx,\n    response_text: response,\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: 'main_menu',\n    log_opcion: ctx.text,\n    log_resultado: JSON.stringify({\n      screen: 'main_menu',\n      result: 'my_tickets',\n      count: rows.length\n    })\n  }\n}];"
+      },
+      "id": "15",
+      "name": "Format My Tickets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "16",
+      "name": "Read All Tickets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2880,
+        540
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Decide Route').all()[0].json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id_ticket);\n\nconst mainMenu = 'Menú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nconst count = (field, value) => rows.filter(r => String(r[field] || '').toLowerCase() === String(value).toLowerCase()).length;\n\nrows.sort((a, b) => String(b.fecha_creacion || '').localeCompare(String(a.fecha_creacion || '')));\n\nlet response = `Resumen general\n\nTotal tickets: ${rows.length}\nAbierto: ${count('estado','Abierto')}\nEn proceso: ${count('estado','En proceso')}\nCerrado: ${count('estado','Cerrado')}\n\nAlta: ${count('prioridad','Alta')}\nMedia: ${count('prioridad','Media')}\nBaja: ${count('prioridad','Baja')}`;\n\nif (rows.length) {\n  response += '\\n\\nÚltimos tickets:\\n' + rows\n    .slice(0, 10)\n    .map(r => `- ${r.id_ticket} | ${r.estado} | ${r.prioridad}`)\n    .join('\\n');\n}\n\nresponse += '\\n\\n' + mainMenu;\n\nreturn [{\n  json: {\n    ...ctx,\n    response_text: response,\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: 'main_menu',\n    log_opcion: ctx.text,\n    log_resultado: JSON.stringify({\n      screen: 'main_menu',\n      result: 'report_summary',\n      total: rows.length\n    })\n  }\n}];"
+      },
+      "id": "17",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id_ticket",
+              "lookupValue": "={{$json.lookup_ticket_id}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "18",
+      "name": "Admin Read Ticket",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2880,
+        700
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Decide Route').all()[0].json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id_ticket);\nconst row = rows[0] || null;\nlet response;\nlet state;\nif (!row) {\n  response = `No encontré el ticket ${ctx.lookup_ticket_id}.`;\n  state = { screen: 'main_menu', result: 'admin_ticket_not_found', ticket_id: ctx.lookup_ticket_id };\n} else {\n  response = `Ticket encontrado: ${row.id_ticket}\\nEstado actual: ${row.estado}\\n\\nSelecciona el nuevo estado:\\n1. Abierto\\n2. En proceso\\n3. Cerrado\\n9. Cancelar`;\n  state = { screen: 'awaiting_admin_status_value', ticket_id: row.id_ticket };\n}\nreturn [{ json: { ...ctx, response_text: response, log_timestamp: new Date().toISOString(), log_pantalla: state.screen, log_opcion: ctx.text, log_resultado: JSON.stringify(state) } }];"
+      },
+      "id": "19",
+      "name": "Format Admin Status Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id_ticket",
+              "lookupValue": "={{$json.lookup_ticket_id}}"
+            }
+          ]
+        },
+        "combineFilters": "AND",
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "id": "20",
+      "name": "Admin Read Ticket For Update",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2880,
+        860
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Decide Route').all()[0].json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id_ticket);\nconst row = rows[0] || null;\nif (!row || !row.id_ticket) {\n  return [{ json: { ...ctx, perform_update: false, response_text: `No encontré el ticket ${ctx.lookup_ticket_id}.`, log_timestamp: new Date().toISOString(), log_pantalla: 'main_menu', log_opcion: ctx.text, log_resultado: JSON.stringify({ screen: 'main_menu', result: 'admin_ticket_not_found', ticket_id: ctx.lookup_ticket_id }) } }];\n}\nreturn [{\n  json: {\n    ...ctx,\n    perform_update: true,\n    row_number: String(row.row_number || ''),\n    ticket_id: row.id_ticket,\n    requester_chat_id: String(row.creado_por || ''),\n    requester_notification_text: `🔔 Actualización de ticket\\n\\nTu ticket ${row.id_ticket} cambió a estado: ${ctx.nuevo_estado}.`\n  }\n}];"
+      },
+      "id": "21",
+      "name": "Build Ticket Status Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{$json.perform_update === false ? 1 : 0}}"
+      },
+      "id": "22",
+      "name": "Switch Update Needed",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        3360,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "SOLICITUDES"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "row_number",
+        "valueToMatchOn": "={{$json.row_number}}",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "estado",
+              "fieldValue": "={{$json.nuevo_estado}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23",
+      "name": "Update Ticket Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        3600,
+        800
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const ctx = $('Build Ticket Status Update').all()[0].json;\n\nconst mainMenu = 'Menú principal:\\n0. Ayuda\\n1. Crear solicitud\\n2. Consultar estado de solicitud\\n3. Mis solicitudes\\n4. Reportes\\n5. Configuración';\n\nconst response = `✅ Estado actualizado.\n\nTicket: ${ctx.ticket_id}\nNuevo estado: ${ctx.nuevo_estado}\n\n${mainMenu}`;\n\nreturn [{\n  json: {\n    ...ctx,\n    response_text: response,\n    log_timestamp: new Date().toISOString(),\n    log_pantalla: 'main_menu',\n    log_opcion: ctx.text,\n    log_resultado: JSON.stringify({\n      screen: 'main_menu',\n      result: 'status_updated',\n      ticket_id: ctx.ticket_id,\n      status: ctx.nuevo_estado\n    })\n  }\n}];"
+      },
+      "id": "24",
+      "name": "Format Status Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.response_text}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "25",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4080,
+        320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "HelpDeskBot Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.requester_chat_id}}",
+        "text": "={{$json.requester_notification_text}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "26",
+      "name": "Send Requester Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4080,
+        860
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "HelpDeskBot Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "={{$('Normalize Input').all()[0].json.spreadsheet_id}}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "LOGS"
+        },
+        "dataMode": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{$json.log_timestamp}}"
+            },
+            {
+              "fieldId": "telegram_user",
+              "fieldValue": "={{$json.telegram_user}}"
+            },
+            {
+              "fieldId": "pantalla",
+              "fieldValue": "={{$json.log_pantalla}}"
+            },
+            {
+              "fieldId": "opcion",
+              "fieldValue": "={{$json.log_opcion}}"
+            },
+            {
+              "fieldId": "resultado",
+              "fieldValue": "={{$json.log_resultado}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27",
+      "name": "Append Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        4080,
+        540
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "HelpDeskBot Google Sheets"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Read Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Users": {
+      "main": [
+        [
+          {
+            "node": "Normalize User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize User": {
+      "main": [
+        [
+          {
+            "node": "Switch User Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch User Gate": {
+      "main": [
+        [
+          {
+            "node": "Read User Logs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read User Logs": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide Route": {
+      "main": [
+        [
+          {
+            "node": "Switch Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Route": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Ticket Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Ticket By ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read My Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read All Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Admin Read Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Admin Read Ticket For Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ticket Row": {
+      "main": [
+        [
+          {
+            "node": "Append Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Ticket": {
+      "main": [
+        [
+          {
+            "node": "After Ticket Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After Ticket Save": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Ticket By ID": {
+      "main": [
+        [
+          {
+            "node": "Format Ticket Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Ticket Query": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read My Tickets": {
+      "main": [
+        [
+          {
+            "node": "Format My Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format My Tickets": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Tickets": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Read Ticket": {
+      "main": [
+        [
+          {
+            "node": "Format Admin Status Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Admin Status Prompt": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Read Ticket For Update": {
+      "main": [
+        [
+          {
+            "node": "Build Ticket Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ticket Status Update": {
+      "main": [
+        [
+          {
+            "node": "Switch Update Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Update Needed": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket Status": {
+      "main": [
+        [
+          {
+            "node": "Format Status Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Status Commit": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Requester Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Context": {
+      "main": [
+        [
+          {
+            "node": "Gemini Intent Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Intent Parser": {
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gemini Intent": {
+      "main": [
+        [
+          {
+            "node": "Decide Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
