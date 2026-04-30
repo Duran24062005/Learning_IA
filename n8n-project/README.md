@@ -2,7 +2,7 @@
 
 Este modulo contiene el workflow portable de n8n para HelpDeskBot:
 
-- `helpdeskbot_gemini_editado.json`
+- `helpdeskbot_gemini_sin_credenciales.json`
 
 El workflow integra Telegram, Google Sheets y Gemini para gestionar solicitudes de soporte desde Telegram. Permite validar usuarios, crear tickets, consultar estados, listar solicitudes del usuario, generar reportes para roles administrativos y actualizar estados de tickets.
 
@@ -18,11 +18,12 @@ El workflow integra Telegram, Google Sheets y Gemini para gestionar solicitudes 
 
 Antes de activar el workflow importado:
 
-1. Reemplaza `YOUR_TELEGRAM_CREDENTIAL_ID` por la credencial de Telegram del entorno.
-2. Reemplaza `YOUR_GSHEETS_CREDENTIAL_ID` por la credencial de Google Sheets del entorno.
-3. Reemplaza `YOUR_HELPDESKBOT_DB_SPREADSHEET_ID` por el ID del spreadsheet operativo.
-4. Verifica que `GEMINI_API_KEY` este definida en el entorno donde corre n8n.
-5. Revisa que las hojas usen estos nombres exactos: `USUARIOS`, `SOLICITUDES` y `LOGS`.
+1. Importa `helpdeskbot_gemini_sin_credenciales.json` en n8n.
+2. Asigna la credencial de Telegram a los nodos de Telegram.
+3. Asigna la credencial OAuth2 de Google Sheets a los nodos de Google Sheets.
+4. Reemplaza `YOUR_HELPDESKBOT_DB_SPREADSHEET_ID` por el ID del spreadsheet operativo.
+5. Verifica que `GEMINI_API_KEY` este definida en el entorno donde corre n8n.
+6. Revisa que las hojas usen estos nombres exactos: `USUARIOS`, `SOLICITUDES` y `LOGS`.
 
 ## Modelo de datos esperado
 
@@ -54,4 +55,4 @@ Antes de activar el workflow importado:
 
 ## Seguridad y trazabilidad
 
-No versionar exports directos de n8n que incluyan IDs reales de credenciales, correos personales, IDs de spreadsheets productivos o metadatos especificos del workspace. El archivo versionado debe permanecer portable y usar placeholders o variables de entorno.
+No versionar exports directos de n8n que incluyan IDs reales de credenciales, correos personales, IDs de spreadsheets productivos, webhook IDs o metadatos especificos del workspace. El archivo versionado debe permanecer portable y usar placeholders o variables de entorno.
